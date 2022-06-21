@@ -46,8 +46,8 @@ const Main = () => {
 
       const drawingContext = canvasRef.current.getContext("2d");
       if (drawingContext) {
-        drawingContext.strokeStyle = "blue";
-        drawingContext.lineWidth = 2;
+        drawingContext.strokeStyle = "red";
+        drawingContext.lineWidth = 4;
         setCtx(drawingContext);
         //
         const canvasOffSet: DOMRect = canvasRef.current.getBoundingClientRect();
@@ -59,7 +59,8 @@ const Main = () => {
     }
   }, []);
 
-  const addImage = async (ctx: CanvasRenderingContext2D) => {
+  // try adding the image to canvas but not working
+  const addImage = async (canvasCtx: CanvasRenderingContext2D) => {
     if (canvasRef.current) {
       const imageData = await getImageDataUrl("/img/car1.jpg");
       // create image
@@ -67,9 +68,8 @@ const Main = () => {
       img.src = imageData.dataUrl;
 
       img.onload = () => {
-        ctx.drawImage(img, 1000, 500);
+        // canvasCtx.drawImage(img, 1000, 500);
       };
-
     }
   };
 
@@ -94,7 +94,6 @@ const Main = () => {
     setDrawing(false);
 
     // check x position for card
-    console.log(remainingSpace);
     if (remainingSpace <= 110) {
       console.log("Render box to right");
     } else {
@@ -162,7 +161,16 @@ const Main = () => {
             onMouseMove={draw}
             onMouseUp={stopDrawing}
             ref={canvasRef}
+            className={'z-40 absolute'}
           ></canvas>
+          <NextImage
+            src={imageUrl}
+            className="w-full h-full"
+            alt="car1"
+            objectFit="cover"
+            objectPosition="center"
+            layout="fill"
+          />
         </div>
 
         <div className="absolute flex space-x-2 bottom-40 right-0">
