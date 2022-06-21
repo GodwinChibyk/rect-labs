@@ -15,25 +15,16 @@ import CloseIcon from "../../../Global/Icons/CloseIcon";
 import DropDownIcon from "../../../Global/Icons/DropDownIcon";
 
 const Main = () => {
-  const [imageUrl, setImageUrl] = useState("/img/car1.jpg");
-  const imageContainerRef = useRef<HTMLDivElement>(null);
   const boxContainerRef = useRef<HTMLDivElement>(null);
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const ctx: any = null;
-  const CARD_WIDTH: number = 100;
-  const [imageElement, setImageElement] = useState<HTMLImageElement | null>();
-
-  // Image data
-  const [imageStartX, setImageStartX] = useState<number>(0);
-  const [imageStartY, setImageStartY] = useState<number>(0);
-  const [imageWidth, setImageWidth] = useState<number>(0);
-  const [remainingWidth, setRemainingWidth] = useState<number>(0)
-  
-  
+  const [imageUrl, setImageUrl] = useState("/img/car1.jpg");
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>();
+  const [offSetY, setOffSetY] = useState<number>(0);
+  const [offSetX, setOffSetX] = useState<number>(0);
   const [drawing, setDrawing] = useState<boolean>(false);
-  const [startX, setStartX] = useState<number>(0);
   const [startY, setStartY] = useState<number>(0);
- 
+  const [startX, setStartX] = useState<number>(0);
+  const [remainingSpace, setRemainingSpace] = useState<number>(0);
 
   const dummyImage = [
     {
@@ -46,78 +37,114 @@ const Main = () => {
     },
   ];
 
-  // get the image element
   useEffect(() => {
-    setImageElement(
-      imageContainerRef.current?.children[0].children[0] as HTMLImageElement
-    );
-    
-  }, [imageUrl]);
-
-  useEffect(() => {
-    updateImageLocation();
-  }, [imageElement]);
-
-  const updateImageLocation = () => {
-    if (imageElement) {
-      const { x, y, width, height, bottom, left, right, top } =
-        imageElement.getBoundingClientRect();
-
-      
-      // update height for image
-      setImageStartX(x + window.scrollX);
-      setImageStartY(y + window.scrollY);
-      setImageWidth(width)
+    // get the context and draw
+    if (canvasRef.current) {
+      const drawingContext = canvasRef.current.getContext("2d");
+      if (drawingContext) {
+        drawingContext.strokeStyle = "blue";
+        drawingContext.lineWidth = 2;
+        setCtx(drawingContext);
+        //
+        const canvasOffSet: DOMRect = canvasRef.current.getBoundingClientRect();
+        setOffSetX(canvasOffSet.left + window.scrollX);
+        setOffSetY(canvasOffSet.top + window.scrollY);
+      }
     }
+  }, []);
+
+  const startDrawing = (e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // save the starting x/y of the rectangle
+    setStartX(+Number(e.pageX - offSetX));
+    setStartY(+Number(e.pageY - offSetY));
+
+    // set a flag indicating the drag has begun
+    setDrawing(true);
   };
 
-  const drawOnImage = (e: any) => {
-    
-    if (boxContainerRef.current && !drawing) {
-      // box start
-      const BOX_START_X = e.pageX - imageStartX;
-      const BOX_START_Y = e.pageY - imageStartY;
-      boxContainerRef.current.style.left = `${BOX_START_X}px`;
-      boxContainerRef.current.style.top = `${BOX_START_Y}px`;
-      setDrawing(true);
-    }
-    const BOX_HEIGHT = e.pageY - startY;
-    const BOX_WIDTH = e.pageX - startX;
+  const stopDrawing = (e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
 
+    // set a flag indicating the drag has begun
+    if (ctx) ctx.save();
 
-  
-    if (boxContainerRef.current && BOX_WIDTH < remainingWidth) {
-      boxContainerRef.current.style.width = `${BOX_WIDTH}px`;
-      boxContainerRef.current.style.height = `${BOX_HEIGHT}px`;
-    }
-  };
-
-  const startDrawingOnImage = (e: any) => {
-
-    setRemainingWidth(imageWidth  - (e.pageX -imageStartX) -8)
-    // get space from left
-    setStartX(e.pageX);
-    setStartY(e.pageY);
-  };
-  const stopDrawingOnImage = (e: any) => {
     setDrawing(false);
-    console.log("Ended drawing");
+
+    // check x position for card
+    console.log(remainingSpace);
+    if (remainingSpace <= 110) {
+      console.log("Render box to right");
+    } else {
+      console.log("Render box to left");
+    }
+  };
+
+  const draw = (e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // if we're not dragging, just return
+    if (!drawing) {
+      return;
+    }
+
+    // get the current mouse position
+    const mouseX = Number(e.pageX - offSetX);
+    const mouseY = Number(e.pageY - offSetY);
+
+    // Put your mousemove stuff here
+
+    if (ctx && canvasRef.current) {
+      // clear the canvas
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+      // calculate the rectangle width/height based
+      // on starting vs current mouse position
+      var width = mouseX - startX;
+      var height = mouseY - startY;
+
+      // draw a new rect from the start position
+      // to the current mouse position
+      ctx.beginPath();
+
+      ctx.rect(startX, startY, width, height);
+
+      ctx.stroke();
+      const axis = {
+        x1: startX,
+        y1: startY,
+        x2: width,
+        y2: height,
+      };
+      // get the remaining space
+      let rmSpace: number;
+      if (axis.x2 < 0) {
+        rmSpace = axis.x1 + axis.x2;
+      } else if (axis.x1 < 110) {
+        rmSpace = axis.x1;
+      } else {
+        rmSpace = axis.x1 + axis.x2;
+      }
+      setRemainingSpace(rmSpace);
+      console.log(axis);
+    }
   };
 
   return (
     <div className="bg-whiteColor min-h-full flex-1 rounded-2xl px-10 pt-8 pb-5">
-      <div className="h-4/5 w-full border relative" ref={imageContainerRef}>
-        <Image
-          src={imageUrl}
-          className="w-full h-full"
-          alt="car1"
-          objectFit="cover"
-          objectPosition="center"
-          layout="fill"
-          onDrag={drawOnImage}
-          onDragStart={startDrawingOnImage}
-          onDragEnd={stopDrawingOnImage}
-        />
+      <div className="h-4/5 w-full border relative">
+        <canvas
+          onMouseDown={startDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          ref={canvasRef}
+          width={1200}
+          height={800}
+        ></canvas>
+
         <div className="absolute flex space-x-2 bottom-40 right-0">
           <div>
             <div className="w-20 h-20 border-4 border-redColor relative"></div>
@@ -144,14 +171,6 @@ const Main = () => {
             </div>
           </div>
         </div>
-
-        <div
-          ref={boxContainerRef}
-          className="absolute border-4 border-red-500 pointer-events-none"
-          style={{
-            left: 0,
-          }}
-        ></div>
       </div>
 
       <div className="h-1/5">
