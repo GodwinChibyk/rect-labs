@@ -1,21 +1,21 @@
 import { default as NextImage } from "next/image";
-import React, {
-  DOMAttributes,
-  DragEventHandler,
-  LegacyRef,
-  MutableRefObject,
-  RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { DUMMY_IMAGES } from "../../../../data";
 import { getImageDataUrl } from "../../../../lib/imageUtils";
-import CheckedCircleIcon from "../../../Global/Icons/CheckedCircleIcon";
-import CloseCircleIcon from "../../../Global/Icons/CloseCircleIcon";
+import DrawBoxInfo from "../../../Global/DrawBoxInfo/DrawBoxInfo";
+import DrawPagination from "../../../Global/DrawPagination/DrawPagination";
 import CloseIcon from "../../../Global/Icons/CloseIcon";
-import DropDownIcon from "../../../Global/Icons/DropDownIcon";
 
+/**
+ *
+ * @returns JSX.Element
+ */
 const Main = () => {
+  // Immutable GLOBALS
+  const DRAW_INFO__BOX_WIDTH = 110;
+  const DRAW_INFO__BOX_HEIGHT = 210;
+
+  //
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const [imageUrl, setImageUrl] = useState("/img/car1.jpg");
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -25,24 +25,26 @@ const Main = () => {
   const [drawing, setDrawing] = useState<boolean>(false);
   const [startY, setStartY] = useState<number>(0);
   const [startX, setStartX] = useState<number>(0);
-  const [remainingSpace, setRemainingSpace] = useState<number>(0);
-
-  const dummyImage = [
-    {
-      id: 1,
-      url: "/img/car1.jpg",
-    },
-    {
-      id: 2,
-      url: "/img/car2.jpg",
-    },
-  ];
+  const [remainingXSpace, setRemainingXSpace] = useState<number>(0);
+  const [stopRightPoint, setStopRightPoint] = useState<number>(0);
+  const [canvasWidth, setCanvasWidth] = useState<number>(0);
+  const [drawAxis, setDrawAxis] = useState<Record<string, number>>({});
+  const [canvasHeight, setCanvasHeight] = useState<number>(0);
+  const [stopLeftPoint, setStopLeftPoint] = useState<number>(0);
+  const [remainingYSpace, setRemainingYSpace] = useState<number>(0);
 
   useEffect(() => {
+    initializeCanvas();
+  }, []);
+
+  // Initialize Canvas on layout
+  const initializeCanvas = async () => {
     // get the context and draw
     if (canvasRef.current && canvasContainerRef.current) {
       canvasRef.current.width = canvasContainerRef.current.clientWidth;
       canvasRef.current.height = canvasContainerRef.current.clientHeight;
+      setCanvasWidth(canvasContainerRef.current.clientWidth);
+      setCanvasHeight(canvasContainerRef.current.clientHeight);
 
       const drawingContext = canvasRef.current.getContext("2d");
       if (drawingContext) {
@@ -54,10 +56,10 @@ const Main = () => {
         setOffSetX(canvasOffSet.left + window.scrollX);
         setOffSetY(canvasOffSet.top + window.scrollY);
 
-        addImage(drawingContext);
+        await addImage(drawingContext);
       }
     }
-  }, []);
+  };
 
   // try adding the image to canvas but not working
   const addImage = async (canvasCtx: CanvasRenderingContext2D) => {
@@ -73,39 +75,68 @@ const Main = () => {
     }
   };
 
+  /**
+   *
+   * Start drawing
+   */
   const startDrawing = (e: any) => {
+    // stop default behavour of the canvas mouseoute
     e.preventDefault();
     e.stopPropagation();
-    // save the starting x/y of the rectangle
-    setStartX(+Number(e.pageX - offSetX));
-    setStartY(+Number(e.pageY - offSetY));
 
-    // set a flag indicating the drag has begun
+    // Get the start position of the mouse on the canvas
+    const STARTING_X_POSITION = +Number(e.pageX - offSetX);
+    const STARTING_Y_POSITION = +Number(e.pageY - offSetY);
+
+    // Save the positions
+    setStartX(STARTING_X_POSITION);
+    setStartY(STARTING_Y_POSITION);
+
+    // update drawing state to true
     setDrawing(true);
   };
 
+  /**
+   *
+   * Stop Drawing
+   */
   const stopDrawing = (e: any) => {
+    // stop default behavour of the canvas mouseup
     e.preventDefault();
     e.stopPropagation();
 
-    // set a flag indicating the drag has begun
-    if (ctx) ctx.save();
-
+    // update drawing state to true
     setDrawing(false);
 
-    // check x position for card
-    if (remainingSpace <= 110) {
-      console.log("Render box to right");
+    /**
+     *
+     * Check the remaining space after drawing to decide
+     * which position to render draw-box info
+     */
+    if (remainingXSpace <= DRAW_INFO__BOX_WIDTH) {
+      const remainingSpaceByRight = canvasWidth - stopRightPoint;
+      if (remainingSpaceByRight > DRAW_INFO__BOX_WIDTH) {
+        console.log("Render box to right");
+      } else {
+        console.log("No space at the right side also, check up or down spaces");
+        detectDrawInfoRenderYPosition(drawAxis)
+      }
     } else {
       console.log("Render box to left");
     }
   };
 
+  /**
+   *
+   * Draw Rectangle
+   *
+   */
   const draw = (e: any) => {
+    // stop default behavour of the canvas mousemove
     e.preventDefault();
     e.stopPropagation();
 
-    // if we're not dragging, just return
+    // Stop if drawing is false
     if (!drawing) {
       return;
     }
@@ -113,8 +144,6 @@ const Main = () => {
     // get the current mouse position
     const mouseX = Number(e.pageX - offSetX);
     const mouseY = Number(e.pageY - offSetY);
-
-    // Put your mousemove stuff here
 
     if (ctx && canvasRef.current) {
       // clear the canvas
@@ -128,28 +157,95 @@ const Main = () => {
       // draw a new rect from the start position
       // to the current mouse position
       ctx.beginPath();
-
       ctx.rect(startX, startY, width, height);
-
       ctx.stroke();
+
       const axis = {
         x1: startX,
         y1: startY,
         x2: width,
         y2: height,
       };
-      // get the remaining space
-      let rmSpace: number;
-      if (axis.x2 < 0) {
-        rmSpace = axis.x1 + axis.x2;
-      } else if (axis.x1 < 110) {
-        rmSpace = axis.x1;
-      } else {
-        rmSpace = axis.x1 + axis.x2;
-      }
-      setRemainingSpace(rmSpace);
-      console.log(axis);
+
+      detectDrawInfoRenderXPosition(axis);
     }
+  };
+
+  const detectDrawInfoRenderXPosition = (axis: Record<string, number>) => {
+    // get the remaining space
+    let rmSpace: number;
+    // if drawing direction was made in the left direction we have negative x2 value,
+    //  add this to the start point(x1) to get the remaining space from left of the canvas
+    if (axis.x2 < 0) {
+      rmSpace = axis.x1 + axis.x2;
+    } else if (axis.x1 < DRAW_INFO__BOX_WIDTH) {
+      // if draw info  box width is greater than x2, then, update remaining space to be x1
+      rmSpace = axis.x1;
+    } else {
+      // if drawing direction was made in the right direction we have positive x2 value,
+      //  add this to the start point (x1) to get the remaining space from left of the canvas
+      rmSpace = axis.x1 + axis.x2;
+    }
+
+    // get stop point to right
+    let rightStop: number = 0;
+    if (axis.x2 < 0) {
+      rightStop = axis.x1;
+    } else {
+      rightStop = axis.x1 + axis.x2;
+    }
+    setDrawAxis(axis);
+    setStopRightPoint(rightStop);
+    // update the remaining space value
+    setRemainingXSpace(rmSpace);
+  };
+
+  const detectDrawInfoRenderYPosition = (axis: Record<string, number>) => {
+    // get the remaining space
+    let rmSpace: number;
+    // if drawing direction was made in the left direction we have negative x2 value,
+    //  add this to the start point(x1) to get the remaining space from left of the canvas
+    if (axis.y2 < 0) {
+      rmSpace = axis.y1 + axis.y2;
+    } else if (axis.y1 < DRAW_INFO__BOX_WIDTH) {
+      // if draw info  box width is greater than x2, then, update remaining space to be x1
+      rmSpace = axis.y1;
+    } else {
+      // if drawing direction was made in the right direction we have positive x2 value,
+      //  add this to the start point (x1) to get the remaining space from left of the canvas
+      rmSpace = axis.y1 + axis.y2;
+    }
+
+    // get stop point to right
+    let bottomStop: number = 0;
+    if (axis.y2 < 0) {
+      bottomStop = axis.y1;
+    } else {
+      bottomStop = axis.y1 + axis.y2;
+    }
+    // console.log(axis);
+
+    // setStopLeftPoint(bottomStop);
+    // // update the remaining space value
+    // setRemainingYSpace(rmSpace);
+    renderDrawInfoHorizontally(bottomStop, rmSpace);
+  };
+
+  const renderDrawInfoHorizontally = (
+    stopBottomPoint: number,
+    remainingYSpace: number
+  ) => {
+    if (remainingYSpace <= DRAW_INFO__BOX_HEIGHT) {
+      const remainingSpaceByBottom = canvasHeight - stopBottomPoint;
+      if (remainingSpaceByBottom > DRAW_INFO__BOX_HEIGHT) {
+        console.log("Render box to bottom");
+      } else {
+        console.log("No space at the bottom side also, render anywhere");
+      }
+    } else {
+      console.log("Render box to top");
+    }
+    console.log(remainingYSpace)
   };
 
   return (
@@ -161,7 +257,7 @@ const Main = () => {
             onMouseMove={draw}
             onMouseUp={stopDrawing}
             ref={canvasRef}
-            className={'z-40 absolute'}
+            className={"z-40 absolute"}
           ></canvas>
           <NextImage
             src={imageUrl}
@@ -173,52 +269,14 @@ const Main = () => {
           />
         </div>
 
-        <div className="absolute flex space-x-2 bottom-40 right-0">
-          <div>
-            <div className="w-20 h-20 border-4 border-redColor relative"></div>
-            <span className="inline-block pt-0.5 px-1 tracking-wide text-whiteColor font-semibold bg-redColor">
-              Car
-            </span>
-          </div>
-          <div className="px-3 py-3 rounded-2xl bg-grayColor">
-            <p className="capitalize text-sm font-semibold text-textColorLight">
-              label 1
-            </p>
-            <ul className="text-lg capitalize tracking-wide font-semibold text-textColorDark my-3">
-              <li>
-                car <span>|</span>
-              </li>
-            </ul>
-            <div className="px-6 py-2 flex justify-between items-center rounded-2xl bg-whiteColor w-40">
-              <button>
-                <CheckedCircleIcon className="h-5 w-5 text-greenColor" />
-              </button>
-              <button>
-                <CloseCircleIcon className="h-5 w-5 text-textColorLight" />
-              </button>
-            </div>
-          </div>
-        </div>
+        <DrawBoxInfo />
       </div>
 
       <div className="h-1/5">
-        <div className=" flex justify-end items-center mt-3 mb-2">
-          <div className="flex items-center">
-            <button className="mr-4">
-              <DropDownIcon className="w-6 h-6 transform rotate-90 text-textColorLight" />
-            </button>
-            <span className="text-textColorLight">1</span>
-            <span className="mx-4 text-textColorLight">/</span>
-            <span>1</span>
-            <button className="ml-4">
-              <DropDownIcon className="w-6 h-6 transform -rotate-90 text-textColorLight" />
-            </button>
-          </div>
-          <p className="ml-4 text-textColorLight">100%</p>
-        </div>
+        <DrawPagination />
 
         <div className="grid grid-cols-6 gap-x-5">
-          {dummyImage.map((img) => (
+          {DUMMY_IMAGES.map((img) => (
             <div
               onClick={(e) => setImageUrl(img.url)}
               key={img.id}
