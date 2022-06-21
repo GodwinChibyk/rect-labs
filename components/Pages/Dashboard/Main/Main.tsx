@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { default as NextImage } from "next/image";
 import React, {
   DOMAttributes,
   DragEventHandler,
@@ -9,13 +9,14 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { getImageDataUrl } from "../../../../lib/imageUtils";
 import CheckedCircleIcon from "../../../Global/Icons/CheckedCircleIcon";
 import CloseCircleIcon from "../../../Global/Icons/CloseCircleIcon";
 import CloseIcon from "../../../Global/Icons/CloseIcon";
 import DropDownIcon from "../../../Global/Icons/DropDownIcon";
 
 const Main = () => {
-  const boxContainerRef = useRef<HTMLDivElement>(null);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
   const [imageUrl, setImageUrl] = useState("/img/car1.jpg");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>();
@@ -39,7 +40,10 @@ const Main = () => {
 
   useEffect(() => {
     // get the context and draw
-    if (canvasRef.current) {
+    if (canvasRef.current && canvasContainerRef.current) {
+      canvasRef.current.width = canvasContainerRef.current.clientWidth;
+      canvasRef.current.height = canvasContainerRef.current.clientHeight;
+
       const drawingContext = canvasRef.current.getContext("2d");
       if (drawingContext) {
         drawingContext.strokeStyle = "blue";
@@ -49,9 +53,25 @@ const Main = () => {
         const canvasOffSet: DOMRect = canvasRef.current.getBoundingClientRect();
         setOffSetX(canvasOffSet.left + window.scrollX);
         setOffSetY(canvasOffSet.top + window.scrollY);
+
+        addImage(drawingContext);
       }
     }
   }, []);
+
+  const addImage = async (ctx: CanvasRenderingContext2D) => {
+    if (canvasRef.current) {
+      const imageData = await getImageDataUrl("/img/car1.jpg");
+      // create image
+      const img = new Image();
+      img.src = imageData.dataUrl;
+
+      img.onload = () => {
+        ctx.drawImage(img, 1000, 500);
+      };
+
+    }
+  };
 
   const startDrawing = (e: any) => {
     e.preventDefault();
@@ -136,14 +156,14 @@ const Main = () => {
   return (
     <div className="bg-whiteColor min-h-full flex-1 rounded-2xl px-10 pt-8 pb-5">
       <div className="h-4/5 w-full border relative">
-        <canvas
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          ref={canvasRef}
-          width={1200}
-          height={800}
-        ></canvas>
+        <div className="absolute w-full h-full" ref={canvasContainerRef}>
+          <canvas
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            ref={canvasRef}
+          ></canvas>
+        </div>
 
         <div className="absolute flex space-x-2 bottom-40 right-0">
           <div>
@@ -196,7 +216,7 @@ const Main = () => {
               key={img.id}
               className=" relative rounded-2xl overflow-hidden h-28 bg-cover"
             >
-              <Image
+              <NextImage
                 src={img.url}
                 alt="car1"
                 objectFit="cover"
