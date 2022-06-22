@@ -119,7 +119,7 @@ const Main = () => {
         console.log("Render box to right");
       } else {
         console.log("No space at the right side also, check up or down spaces");
-        detectDrawInfoRenderYPosition(drawAxis)
+        detectDrawInfoRenderYPosition(drawAxis);
       }
     } else {
       console.log("Render box to left");
@@ -245,7 +245,7 @@ const Main = () => {
     } else {
       console.log("Render box to top");
     }
-    console.log(remainingYSpace)
+    console.log(remainingYSpace);
   };
 
   return (
