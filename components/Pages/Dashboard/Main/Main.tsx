@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { DUMMY_IMAGES } from "../../../../data";
 import { getImageDataUrl } from "../../../../lib/imageUtils";
 import DrawBoxInfo from "../../../Global/DrawBoxInfo/DrawBoxInfo";
-import DrawPagination from "../../../Global/Draw/DrawPagination";
+import DrawPagination from "../../../Global/DrawPagination/DrawPagination";
 import CloseIcon from "../../../Global/Icons/CloseIcon";
 
 /**
@@ -12,7 +12,7 @@ import CloseIcon from "../../../Global/Icons/CloseIcon";
  */
 const Main = () => {
   // Immutable GLOBALS
-  const DRAW_INFO__BOX_WIDTH = 110;
+  const DRAW_INFO__BOX_WIDTH = 184;
   const DRAW_INFO__BOX_HEIGHT = 210;
 
   //
@@ -30,7 +30,9 @@ const Main = () => {
   const [canvasWidth, setCanvasWidth] = useState<number>(0);
   const [drawAxis, setDrawAxis] = useState<Record<string, number>>({});
   const [canvasHeight, setCanvasHeight] = useState<number>(0);
-
+  const [showDrawInfoBox, setShowDrawInfoBox] = useState<boolean>(false);
+  const [boxXposition, setBoxXPosition] = useState<number>(0);
+  const [boxYposition, setBoxYPosition] = useState<number>(0);
 
   useEffect(() => {
     initializeCanvas();
@@ -83,6 +85,9 @@ const Main = () => {
     e.preventDefault();
     e.stopPropagation();
 
+    // hide the draw info box
+    setShowDrawInfoBox(false);
+
     // Get the start position of the mouse on the canvas
     const STARTING_X_POSITION = +Number(e.pageX - offSetX);
     const STARTING_Y_POSITION = +Number(e.pageY - offSetY);
@@ -115,14 +120,21 @@ const Main = () => {
     if (remainingXSpace <= DRAW_INFO__BOX_WIDTH) {
       const remainingSpaceByRight = canvasWidth - stopRightPoint;
       if (remainingSpaceByRight > DRAW_INFO__BOX_WIDTH) {
+        setBoxXPosition(remainingXSpace + drawAxis.x2);
+        setBoxYPosition(drawAxis.y1);
         console.log("Render box to right");
       } else {
         console.log("No space at the right side also, check up or down spaces");
         detectDrawInfoRenderYPosition(drawAxis);
       }
     } else {
+      // get box x and y axis to render
       console.log("Render box to left");
+      setBoxXPosition(remainingXSpace - (drawAxis.x2 + DRAW_INFO__BOX_WIDTH));
+      setBoxYPosition(drawAxis.y1);
     }
+    console.log(drawAxis);
+    setShowDrawInfoBox(true);
   };
 
   /**
@@ -264,7 +276,9 @@ const Main = () => {
           />
         </div>
 
-        <DrawBoxInfo />
+        {showDrawInfoBox && (
+          <DrawBoxInfo positionX={boxXposition} positionY={boxYposition} />
+        )}
       </div>
 
       <div className="h-1/5">

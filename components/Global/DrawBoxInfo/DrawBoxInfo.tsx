@@ -1,16 +1,38 @@
+import { type } from 'os'
 import React from 'react'
 import CheckedCircleIcon from '../Icons/CheckedCircleIcon'
 import CloseCircleIcon from '../Icons/CloseCircleIcon'
 
-const DrawBoxInfo = () => {
+
+type DRAWBOXPROPS = {
+  ref?:any,
+  positionX: number,
+  positionY: number
+}
+
+export enum RenderXBoxDirection {
+  LEFT = 'left',
+  RIGHT = 'right',
+}
+
+export enum RenderYBoxDirection {
+  TOP = 'top',
+  BOTTOM = 'bottom',
+}
+
+
+const DrawBoxInfo = ({positionX, positionY}: DRAWBOXPROPS) => {
   return (
-    <div className="absolute flex space-x-2 bottom-40 right-0">
-    <div>
+    <div className="absolute flex space-x-2" style={{
+      left: `${positionX}px`,
+      top: `${positionY}px`,
+    }} >
+    {/* <div>
       <div className="w-20 h-20 border-4 border-redColor relative"></div>
       <span className="inline-block pt-0.5 px-1 tracking-wide text-whiteColor font-semibold bg-redColor">
         Car
       </span>
-    </div>
+    </div> */}
     <div className="px-3 py-3 rounded-2xl bg-grayColor">
       <p className="capitalize text-sm font-semibold text-textColorLight">
         label 1
