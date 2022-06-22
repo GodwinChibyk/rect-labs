@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { DUMMY_IMAGES } from "../../../../data";
 import { getImageDataUrl } from "../../../../lib/imageUtils";
 import DrawBoxInfo from "../../../Global/DrawBoxInfo/DrawBoxInfo";
-import DrawPagination from "../../../Global/DrawPagination/DrawPagination";
+import DrawPagination from "../../../Global/Draw/DrawPagination";
 import CloseIcon from "../../../Global/Icons/CloseIcon";
 
 /**
@@ -30,8 +30,7 @@ const Main = () => {
   const [canvasWidth, setCanvasWidth] = useState<number>(0);
   const [drawAxis, setDrawAxis] = useState<Record<string, number>>({});
   const [canvasHeight, setCanvasHeight] = useState<number>(0);
-  const [stopLeftPoint, setStopLeftPoint] = useState<number>(0);
-  const [remainingYSpace, setRemainingYSpace] = useState<number>(0);
+
 
   useEffect(() => {
     initializeCanvas();
@@ -223,11 +222,7 @@ const Main = () => {
     } else {
       bottomStop = axis.y1 + axis.y2;
     }
-    // console.log(axis);
 
-    // setStopLeftPoint(bottomStop);
-    // // update the remaining space value
-    // setRemainingYSpace(rmSpace);
     renderDrawInfoHorizontally(bottomStop, rmSpace);
   };
 
@@ -278,7 +273,7 @@ const Main = () => {
         <div className="grid grid-cols-6 gap-x-5">
           {DUMMY_IMAGES.map((img) => (
             <div
-              onClick={(e) => setImageUrl(img.url)}
+              onClick={() => setImageUrl(img.url)}
               key={img.id}
               className=" relative rounded-2xl overflow-hidden h-28 bg-cover"
             >
